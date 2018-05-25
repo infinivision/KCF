@@ -1,0 +1,42 @@
+cmake_minimum_required(VERSION 3.4.1)
+project( kcf )
+
+#SET (CMAKE_C_COMPILER             "/usr/bin/clang")
+#SET (CMAKE_CXX_COMPILER             "/usr/bin/clang++")
+
+if(NOT WIN32)
+#ADD_DEFINITIONS("-std=c++0x -O3")
+ADD_DEFINITIONS("-std=c++11 -O3")
+endif(NOT WIN32)
+
+IF (CMAKE_SYSTEM_NAME MATCHES "Linux") 
+  set(OpenCV_DIR /home/firefly/wanglei/opencv_build)
+endif ()
+find_package( OpenCV REQUIRED COMPONENTS opencv_imgproc opencv_core opencv_video opencv_videoio opencv_highgui)
+
+file(GLOB sample_sources "${PROJECT_SOURCE_DIR}/*.cpp")
+if (APPLE)
+  include_directories("/Users/load/code/cpp/eigen-git-mirror-3.3.4")
+elseif (UNIX)
+  include_directories("/home/firefly/wanglei/eigen-git-mirror-3.3.4")
+endif ()
+
+if (APPLE)
+  include_directories( "/usr/local/include" )
+  link_directories("/usr/local/lib")
+elseif (UNIX)
+  include_directories( "/usr/include" )
+  link_directories("/usr/lib")
+  include_directories(${OpenCV_INCLUDE_DIRS})
+  link_directories(${OpenCV_LIB_COMPONENTS})
+endif ()
+
+include_directories ("${PROJECT_SOURCE_DIR}/trackerKCF")
+add_subdirectory( ${PROJECT_SOURCE_DIR}/trackerKCF )
+
+foreach(src ${sample_sources})
+  get_filename_component(name "${src}" NAME_WE)
+  message( add exe ${name} ${src} )
+  add_executable(${name} ${src})
+  target_link_libraries( ${name} trackerKCF ${OpenCV_LIBS}  fftw3f )
+endforeach()
