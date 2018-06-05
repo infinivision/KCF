@@ -1,0 +1,10 @@
+%YAML:1.0
+---
+detect_thresh: 0.4
+lambda: 0.0001
+interp_factor: 0.05
+output_sigma_factor: 0.0625
+compressed_size: 5
+pca_learning_rate: 0.12
+template_len: 32
+pad_scale: 0.25
