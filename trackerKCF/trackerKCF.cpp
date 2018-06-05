@@ -581,10 +581,6 @@ namespace cv{
    */
   void inline TrackerKCFImpl::sumChannels(std::vector<Mat> src, Mat & dest) {
     dest=src[0].clone();
-    for(unsigned i=1;i<src.size();i++){
-      dest+=src[i];
-    }
-
     // eigen matrix
     int len = dest.rows*dest.cols;
     Map<ArrayXcf> a((std::complex<float> *) dest.data ,len);
