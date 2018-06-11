@@ -128,6 +128,7 @@ namespace cv{
     Rect2d roi;
 
     Mat img_Patch;
+    Mat img_norm_Patch;
     Mat patch_data_tmp;
     Mat hann; 	//hann window filter
     // hog extract
@@ -241,6 +242,7 @@ namespace cv{
    */
   bool TrackerKCFImpl::initImpl( const Mat& image, const Rect2d& boundingBox ){
     frame=0;
+    /*
     roi.x = cvRound(boundingBox.x);
     roi.y = cvRound(boundingBox.y);
     roi.width = cvRound(boundingBox.width);
@@ -266,27 +268,50 @@ namespace cv{
     //roi.height = roi.height * (1+params.pad_scale);
     roi.width  = params.template_len;
     roi.height = params.template_len;
+    */
 
+    roi.x = cvRound(boundingBox.x);
+    roi.y = cvRound(boundingBox.y);
+    roi.width = cvRound(boundingBox.width);
+    roi.height = cvRound(boundingBox.height);
+
+    if(roi.width > roi.height){
+      roi.y -= (roi.width - roi.height)/2;
+      roi.height = roi.width;
+    } else {
+      roi.x -= ( roi.height - roi.width )/2;
+      roi.width = roi.height;
+    }
+    // adjust roi for padding surrounding
+    roi.x -= roi.width  * params.pad_scale/2;
+    roi.y -= roi.height * params.pad_scale/2;
+    roi.width *= 1 + params.pad_scale;
+    roi.height = roi.width;
+    resize_scale = (float)roi.width / params.template_len;
     //calclulate output sigma
-    output_sigma=std::sqrt(static_cast<float>(roi.width*roi.height))*params.output_sigma_factor;
+    // output_sigma=std::sqrt(static_cast<float>(roi.width*roi.height))*params.output_sigma_factor;
+    output_sigma=std::sqrt(static_cast<float>(params.template_len*params.template_len))*params.output_sigma_factor;
     output_sigma=-0.5f/(output_sigma*output_sigma);
 
     // initialize the hann window filter
-    createHanningWindow(hann, roi.size(), CV_32F);
+    // createHanningWindow(hann, roi.size(), CV_32F);
+    createHanningWindow(hann, Size(params.template_len,params.template_len), CV_32F);
     // eigen hann
     new (& hannMap) Map<MatrixF>((float *)hann.data,hann.rows,hann.cols);
 
     // feature vector init
-    featureVectorInit(roi.height, roi.width, 10);
+    // featureVectorInit(roi.height, roi.width, 10);
+    featureVectorInit(params.template_len, params.template_len, 10);
     // fftw buffer matrix init
-    fftwInit(roi.height, roi.width, params.compressed_size);
+    // fftwInit(roi.height, roi.width, params.compressed_size);
+    fftwInit(params.template_len, params.template_len, params.compressed_size);
     // create gaussian response
     y = 0;
 
-    for(int i=0;i<int(roi.height);i++){
-      for(int j=0;j<int(roi.width);j++){
+    for(int i=0;i<int(params.template_len);i++){
+      for(int j=0;j<int(params.template_len);j++){
         y.at<float>(i,j) =
-                static_cast<float>((i-roi.height/2+1)*(i-roi.height/2+1)+(j-roi.width/2+1)*(j-roi.width/2+1));
+                static_cast<float>((i-params.template_len/2+1)*(i-params.template_len/2+1)+(j-params.template_len/2+1)*(j-params.template_len/2+1));
       }
     }
 
@@ -296,8 +321,8 @@ namespace cv{
     fftTool(y,yf);
 
     //return true only if roi has intersection with the image
-    if((roi & Rect2d(0,0,  image.cols / resize_scale ,
-                           image.rows / resize_scale )) == Rect2d()) {
+    if((roi & Rect2d(0,0,  image.cols  ,
+                           image.rows  )) == Rect2d()) {
       return false;
     } 
       
@@ -355,7 +380,7 @@ namespace cv{
     CV_Assert(img.channels() == 3);
 
     // resize the image whenever needed
-    resize(image,img,Size(img.cols/resize_scale,img.rows/resize_scale),0,0,INTER_LINEAR_EXACT);
+    // resize(image,img,Size(img.cols/resize_scale,img.rows/resize_scale),0,0,INTER_LINEAR_EXACT);
 
     // detection part
     if(frame>0){
@@ -383,15 +408,24 @@ namespace cv{
           cout << "maxVal < params.detect_thresh" << endl;
           return false;
       }
-      roi.x+=(maxLoc.x-roi.width/2+1);
-      roi.y+=(maxLoc.y-roi.height/2+1);
+      // roi.x+=(maxLoc.x-roi.width/2+1);
+      // roi.y+=(maxLoc.y-roi.height/2+1);
+      roi.x += (maxLoc.x - params.template_len/2 ) * resize_scale;
+      roi.y += (maxLoc.y - params.template_len/2 ) * resize_scale;
     }
 
-    // update the bounding box
+    // update the bounding box by eliminate padding
+    /*
     boundingBox.x= (roi.x+roi.width/(1+params.pad_scale)/2*params.pad_scale)*resize_scale;
     boundingBox.y=(roi.y+roi.height/(1+params.pad_scale)/2*params.pad_scale)*resize_scale;
     boundingBox.width = roi.width*resize_scale/(1+params.pad_scale);
     boundingBox.height = roi.height*resize_scale/(1+params.pad_scale);
+    */
+    boundingBox.x= (roi.x+roi.width/(1+params.pad_scale)/2*params.pad_scale);
+    boundingBox.y= (roi.y+roi.height/(1+params.pad_scale)/2*params.pad_scale);
+    boundingBox.width = roi.width/(1+params.pad_scale);
+    boundingBox.height = roi.height/(1+params.pad_scale);
+
     // extract the patch for learning purpose
     // get non compressed descriptors
     if(!getSubWindow(img, roi, img_Patch)){
@@ -667,12 +701,14 @@ namespace cv{
     copyMakeBorder(patch,patch,addTop,addBottom,addLeft,addRight,BORDER_REPLICATE);
     if(patch.rows==0 || patch.cols==0)return false;
 
+    // add resize to normal patch area
+    resize(patch, img_norm_Patch, Size(params.template_len,params.template_len), 0,0,INTER_LINEAR_EXACT);
     // extract the desired descriptors
-    extractCN(patch);
+    extractCN(img_norm_Patch);
     // eigen generate hog feature vector
     Map<MatrixF> x_temp(nullptr,0,0);
     for(int i = 0; i< 10; i++){
-      new (& x_temp) Map<MatrixF>((float *)xv[i].data,patch.rows,patch.cols);
+      new (& x_temp) Map<MatrixF>((float *)xv[i].data,img_norm_Patch.rows,img_norm_Patch.cols);
       x_temp.array() = x_temp.array() * hannMap.array();
     }
     return true;
