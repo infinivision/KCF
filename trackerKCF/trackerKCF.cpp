@@ -410,8 +410,8 @@ namespace cv{
       }
       // roi.x+=(maxLoc.x-roi.width/2+1);
       // roi.y+=(maxLoc.y-roi.height/2+1);
-      roi.x += (maxLoc.x - params.template_len/2 ) * resize_scale;
-      roi.y += (maxLoc.y - params.template_len/2 ) * resize_scale;
+      roi.x += (maxLoc.x - params.template_len/2 +1) * resize_scale;
+      roi.y += (maxLoc.y - params.template_len/2 +1) * resize_scale;
     }
 
     // update the bounding box by eliminate padding
