@@ -70,6 +70,7 @@ bool Tracker::init( InputArray image, const Rect2d& boundingBox )
 
   if( initTracker )
   {
+    this->boundingBox = boundingBox;
     isInit = true;
   }
 
@@ -87,6 +88,8 @@ bool Tracker::update( InputArray image, Rect2d& boundingBox )
   if( image.empty() )
     return false;
 
+  this->boundingBox = boundingBox;
+
   return updateImpl( image.getMat(), boundingBox );
 }
 
@@ -94,6 +97,8 @@ bool Tracker::reset( InputArray image, Rect2d& boundingBox, int temp_len)
 {
   if( image.empty() )
     return false;
+
+  this->boundingBox = boundingBox;
 
   return resetImpl( image.getMat(), boundingBox, temp_len);
 }
