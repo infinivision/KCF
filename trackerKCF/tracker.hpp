@@ -109,7 +109,6 @@ class CV_EXPORTS_W Tracker : public virtual Algorithm
   virtual void write( FileStorage& fs ) const=0;
 
   long id;
-  Rect2d boundingBox;
 
  protected:
 
