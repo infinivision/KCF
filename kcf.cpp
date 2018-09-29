@@ -60,9 +60,17 @@ int main( int argc, char** argv ){
   }
 
   Mat frame;
+  Mat show_frame;
   // get bounding box
   cap >> frame;
-  Rect2d roi= selectROI("tracker", frame, true, false);
+  cv::resize(frame,show_frame,cv::Size(1024,768));
+  Rect2d roi= selectROI("tracker", show_frame, true, false);
+
+  roi.x = roi.x / 1024.0 * frame.cols;
+  roi.y = roi.y / 768.0 * frame.rows;
+  roi.width   = roi.width   / 1024.0 * frame.cols;
+  roi.height  = roi.height / 768.0 * frame.rows;
+
   //quit if ROI was not selected
   if(roi.width==0 || roi.height==0)
     return 0;
@@ -125,13 +133,14 @@ int main( int argc, char** argv ){
 
     sprintf (buffer, "speed: %.0f fps frame index:%d", fps,int(frameNO));
     text = buffer;
-    putText(frame, text, Point(20,20), FONT_HERSHEY_PLAIN, 1.25, Scalar(0,0,0),2);
+    putText(frame, text, Point(20,20), FONT_HERSHEY_PLAIN, 2, Scalar(0,0,0),2);
     sprintf (buffer, "roi length: %d ", int(roi.width));
     text = buffer;
-    putText(frame, text, Point(20,35), FONT_HERSHEY_PLAIN, 1.25, Scalar(0,0,0),2);    
+    putText(frame, text, Point(20,35), FONT_HERSHEY_PLAIN, 2, Scalar(0,0,0),2);    
     // show image with the tracked object
-    imshow("tracker",frame);
-
+    
+    cv::resize(frame,show_frame,cv::Size(1024,768));
+    imshow("tracker",show_frame);
 
   }
     cout << "Elapsed sec: " << static_cast<double>(tick_counter) / cv::getTickFrequency() << endl;

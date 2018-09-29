@@ -44,11 +44,14 @@
 #include <cmath>
 #include <string>
 #include <iostream>
+#include <mutex>
+#include <vector>
 #include "fftw3.h"
 #include <Eigen/Dense>
 #include <Eigen/SVD>
 #include "featureColorName.hpp"
 
+std::mutex fftw_plan_mutex;
 
 namespace cv{
   void*  fftwf_mallocWrapper(size_t n);
@@ -536,7 +539,7 @@ namespace cv{
   }
 
   void inline TrackerKCFImpl::fftwInit(int row, int col, int cn) {
-
+    fftw_plan_mutex.lock();
     scalarf = row * col;
     xcv.resize(cn);
     zcv.resize(cn);
@@ -571,7 +574,7 @@ namespace cv{
       cout << "fftwf create ifft plan failed!" << endl;
       exit(1);
     }
-
+  fftw_plan_mutex.unlock();
   }
 
   /*
