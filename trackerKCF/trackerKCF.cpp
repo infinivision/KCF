@@ -307,7 +307,9 @@ namespace cv{
     featureVectorInit(params.template_len, params.template_len, 10);
     // fftw buffer matrix init
     // fftwInit(roi.height, roi.width, params.compressed_size);
+    fftw_plan_mutex.lock();
     fftwInit(params.template_len, params.template_len, params.compressed_size);
+    fftw_plan_mutex.unlock();
     // create gaussian response
     y = 0;
 
@@ -539,7 +541,7 @@ namespace cv{
   }
 
   void inline TrackerKCFImpl::fftwInit(int row, int col, int cn) {
-    fftw_plan_mutex.lock();
+    
     scalarf = row * col;
     xcv.resize(cn);
     zcv.resize(cn);
@@ -574,7 +576,7 @@ namespace cv{
       cout << "fftwf create ifft plan failed!" << endl;
       exit(1);
     }
-  fftw_plan_mutex.unlock();
+
   }
 
   /*
